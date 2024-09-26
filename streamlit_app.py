@@ -35,41 +35,83 @@ df = load_data()
 st.write("## Age-specific cancer mortality rates")
 
 ### P2.1 ###
-# replace with st.slider
-year = 2012
+# Add a slider to select the year
+year = st.slider(
+    "Select Year",
+    min_value=int(df["Year"].min()), 
+    max_value=int(df["Year"].max()), 
+    value=int(df["Year"].min()),  # default value, can be adjusted
+    step=1
+)
+
+# Subset the dataframe based on the selected year
 subset = df[df["Year"] == year]
 ### P2.1 ###
 
+st.write(subset)
+
+
+import streamlit as st
 
 ### P2.2 ###
-# replace with st.radio
-sex = "M"
+# Add a radio button to select sex
+sex = st.radio(
+    "Select Sex",
+    options=["M", "F"],  # Assuming "M" and "F" are the only options in the dataset
+    index=0  # Default to "M"
+)
+
+# Filter the subset DataFrame based on the selected sex
 subset = subset[subset["Sex"] == sex]
 ### P2.2 ###
 
+st.write(subset)
+
 
 ### P2.3 ###
-# replace with st.multiselect
-# (hint: can use current hard-coded values below as as `default` for selector)
-countries = [
-    "Austria",
-    "Germany",
-    "Iceland",
-    "Spain",
-    "Sweden",
-    "Thailand",
-    "Turkey",
-]
+# Get a list of unique countries from the dataset
+all_countries = df["Country"].unique().tolist()
+
+# Add a multiselect widget to select countries
+countries = st.multiselect(
+    "Select Countries",
+    options=all_countries,
+    default=[
+        "Austria",
+        "Germany",
+        "Iceland",
+        "Spain",
+        "Sweden",
+        "Thailand",
+        "Turkey",
+    ]  # These are the default countries pre-selected
+)
+
+# Filter the subset DataFrame based on selected countries
 subset = subset[subset["Country"].isin(countries)]
 ### P2.3 ###
 
+st.write(subset)
+
 
 ### P2.4 ###
-# replace with st.selectbox
-cancer = "Malignant neoplasm of stomach"
+# Get the unique cancer types from the dataset
+cancer_types = subset["Cancer"].unique().tolist()
+
+# Add a dropdown select box for cancer type
+cancer = st.selectbox(
+    "Select Cancer Type",
+    options=cancer_types,
+    index=cancer_types.index("Malignant neoplasm of stomach")  # Default value
+)
+
+# Filter the subset DataFrame based on the selected cancer type
 subset = subset[subset["Cancer"] == cancer]
 ### P2.4 ###
 
+st.write(subset)
+
+import altair as alt
 
 ### P2.5 ###
 ages = [
@@ -83,22 +125,36 @@ ages = [
     "Age >64",
 ]
 
-chart = alt.Chart(subset).mark_bar().encode(
+# Create a heatmap comparing the cancer mortality rates
+chart = alt.Chart(subset).mark_rect().encode(
+    x=alt.X("Age", sort=ages, title="Age Group"),
+    y=alt.Y("Country", title="Country"),
+    color=alt.Color(
+        "Rate",
+        scale=alt.Scale(type="log", domain=[0.01, 1000], clamp=True),
+        title="Mortality rate per 100k",
+    ),
+    tooltip=["Country", "Age", "Rate"],
+).properties(
+    title=f"{cancer} mortality rates for {'males' if sex == 'M' else 'females'} in {year}",
+)
+
+chart2 = alt.Chart(subset).mark_bar().encode(
     x=alt.X("Age", sort=ages),
     y=alt.Y("Rate", title="Mortality rate per 100k"),
     color="Country",
     tooltip=["Rate"],
-).properties(
+    ).properties(
     title=f"{cancer} mortality rates for {'males' if sex == 'M' else 'females'} in {year}",
 )
 ### P2.5 ###
 
-st.altair_chart(chart, use_container_width=True)
+st.altair_chart(chart & chart2, use_container_width=True)
 
 countries_in_subset = subset["Country"].unique()
 if len(countries_in_subset) != len(countries):
     if len(countries_in_subset) == 0:
-        st.write("No data avaiable for given subset.")
+        st.write("No data available for the given subset.")
     else:
         missing = set(countries) - set(countries_in_subset)
         st.write("No data available for " + ", ".join(missing) + ".")
