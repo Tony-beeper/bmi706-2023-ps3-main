@@ -111,8 +111,6 @@ subset = subset[subset["Cancer"] == cancer]
 
 st.write(subset)
 
-import altair as alt
-
 ### P2.5 ###
 ages = [
     "Age <5",
@@ -125,6 +123,9 @@ ages = [
     "Age >64",
 ]
 
+# Create a selection brush to be used for selecting age groups
+brush = alt.selection_interval(encodings=['x'])
+
 # Create a heatmap comparing the cancer mortality rates
 chart = alt.Chart(subset).mark_rect().encode(
     x=alt.X("Age", sort=ages, title="Age Group"),
@@ -135,20 +136,27 @@ chart = alt.Chart(subset).mark_rect().encode(
         title="Mortality rate per 100k",
     ),
     tooltip=["Country", "Age", "Rate"],
+).add_params(
+    brush
 ).properties(
     title=f"{cancer} mortality rates for {'males' if sex == 'M' else 'females'} in {year}",
 )
 
+# Create a bar chart that responds to the brush selection
 chart2 = alt.Chart(subset).mark_bar().encode(
     x=alt.X("Age", sort=ages),
     y=alt.Y("Rate", title="Mortality rate per 100k"),
     color="Country",
     tooltip=["Rate"],
-    ).properties(
+).transform_filter(
+    brush
+).properties(
     title=f"{cancer} mortality rates for {'males' if sex == 'M' else 'females'} in {year}",
 )
+
 ### P2.5 ###
 
+# Display the heatmap and bar chart side by side
 st.altair_chart(chart & chart2, use_container_width=True)
 
 countries_in_subset = subset["Country"].unique()
